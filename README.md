@@ -35,6 +35,11 @@ The expected product shape is:
 3. Design the package split for CLI, shared runtime, and target adapters.
 4. Build a minimal demo spanning at least two distinct client targets.
 
+## Documents
+
+- [Roadmap](./ROADMAP.md)
+- [Architecture](./docs/architecture.md)
+
 ## Working Principles
 
 - reuse the core, not assumptions
