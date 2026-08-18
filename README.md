@@ -18,22 +18,28 @@ This repository is intended to cover:
 
 This repository should not claim that all targets are identical or hide runtime differences behind unsafe abstractions.
 
-## Planned Shape
+**Note:** native mini-program targets are experimental and are not a supported v1 promise.
 
-The expected product shape is:
+## Local development
 
-- a CLI for bootstrap, target registration, validation, and generation
-- shared core libraries plus per-target adapters
-- config, manifest, and schema conventions for target capabilities
-- presets for common target combinations
-- examples and demos for end-to-end multi-target development
+Requires Node.js 24.x LTS. This package depends on a local `../kernel` checkout via `file:` during scaffolding.
 
-## Initial Milestones
+```bash
+# from sibling kernel repo first:
+#   cd ../kernel && npm install && npm run build
+npm install
+npm run build
+node ./bin/cross-platform.js --help
+```
 
-1. Define the shared-core versus adapter boundary.
-2. Decide how targets and capabilities are declared in manifests.
-3. Design the package split for CLI, shared runtime, and target adapters.
-4. Build a minimal demo spanning at least two distinct client targets.
+CLI surface: `init`, `add-target`, `generate`, `preview`, `validate`, `doctor`. Default preset: `h5-react-vite`.
+
+`init` writes minimal family config:
+
+- `client-platform.config.jsonc` with `products.crossPlatform`
+- `client-platform.manifest.jsonc` with H5 target stubs
+
+`add-target`, `generate`, and `preview` are stubs in this command-shell milestone.
 
 ## Documents
 
