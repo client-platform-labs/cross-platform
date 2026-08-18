@@ -6,7 +6,8 @@
 
 - Runtime: Node.js 24.x LTS + TypeScript.
 - CLI framework: `commander`.
-- Packaging: ESM-first npm packages with a `bin` entry.
+- Packaging: ESM-first npm packages under `@client-platform/*`, with Product `bin` entries plus family command `client-platform`.
+- Plugin metadata: `package.json#clientPlatform`.
 - Command loading: static core commands; heavy/optional paths via `import()`.
 - Config: human-authored JSONC, validated with JSON Schema 2020-12 via Ajv.
 - Documents carry `schemaVersion` and migrate before validation.
@@ -30,11 +31,13 @@ CLI  ->  shared core  ->  target adapters  ->  generated seams  ->  per-target p
 
 ## Proposed package split
 
-- `cross-platform` CLI package
-- `@.../shared-core`
-- `@.../target-h5` / `@.../target-mini-program` / ...
-- `@.../codegen`
+- `@client-platform/cross-platform` CLI package, bin `cross-platform`
+- `@client-platform/shared-core`
+- `@client-platform/target-h5` / `@client-platform/target-mini-program` / ...
+- `@client-platform/codegen`
 - `examples/*`
+
+This Product is also loadable by the Umbrella CLI `client-platform` through `package.json#clientPlatform`.
 
 ## Inputs and outputs
 
