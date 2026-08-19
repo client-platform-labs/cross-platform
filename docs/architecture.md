@@ -1,68 +1,32 @@
 # Architecture
 
-`cross-platform` helps teams share a core across client targets without pretending those targets are identical. Differences are modeled, generated, and validated.
+`cross-platform` shares a core across client targets without pretending targets are identical.
 
-## Family constraints already decided
+## Composition (locked)
 
-- Runtime: Node.js 24.x LTS + TypeScript.
-- CLI framework: `commander`.
-- Packaging: ESM-first npm packages under `@client-platform/*`, with Product `bin` entries plus family command `client-platform`.
-- Plugin metadata: `package.json#clientPlatform`.
-- Command loading: static core commands; heavy/optional paths via `import()`.
-- Config: human-authored JSONC, validated with JSON Schema 2020-12 via Ajv.
-- Documents carry `schemaVersion` and migrate before validation.
+`products.crossPlatform`:
 
-Family files:
+- `preset` (default `h5-react-vite`)
+- `sharedCore`
+- `targets[]`: `{ id, capabilities[], support: "supported" | "experimental" }`
 
-- Workspace config: `client-platform.config.jsonc`
-- Project manifest: `client-platform.manifest.jsonc`
+Project Manifest holds project-level `targets` / `tooling` only.
 
-## Product shape
+## Support policy
 
-```text
-CLI  ->  shared core  ->  target adapters  ->  generated seams  ->  per-target preview
-```
+| Target | v1 |
+| --- | --- |
+| `h5` | supported |
+| `mini-program` | experimental (warn/degrade) |
+| RN | out of this product (sibling) |
 
-- **CLI**: init, add-target, generate, preview, validate, doctor.
-- **Shared core**: business logic and portable UI pieces that are actually portable.
-- **Target adapters**: H5, mini program, and other runtime shims.
-- **Capability model**: what each target supports, required fallbacks, and forbidden APIs.
-- **Presets**: common target combinations.
+## CLI
 
-## Proposed package split
-
-- `@client-platform/cross-platform` CLI package, bin `cross-platform`
-- `@client-platform/shared-core`
-- `@client-platform/target-h5` / `@client-platform/target-mini-program` / ...
-- `@client-platform/codegen`
-- `examples/*`
-
-This Product is also loadable by the Umbrella CLI `client-platform` through `package.json#clientPlatform`.
-
-## Inputs and outputs
-
-| Flow | Input | Output |
-| --- | --- | --- |
-| `init` | chosen targets | monorepo or workspace with shared core |
-| `add-target` | new target id | adapter stub + capability manifest |
-| `generate` | core + target manifests | seams, shims, and type guards |
-| `preview` | one target | running target-specific app |
-| `validate` | core usage vs capabilities | leakage and incompatibility report |
-
-## What this repo should own
-
-- Shared-core versus adapter boundary.
-- Target capability model.
-- Codegen and per-target preview.
-- Multi-target examples.
-
-## What lives in the family kernel
-
-Kernel is a separate repository, [`client-platform-labs/kernel`](https://github.com/client-platform-labs/kernel). It publishes `@client-platform/kernel` and `@client-platform/cli`. This product depends on the library; it does not reimplement it.
-
-Kernel owns:
-
-- CLI bootstrap and diagnostics.
-- Config/manifest load, migrate, validate.
-- Plugin registry and lazy loading.
-- Workspace/project discovery.
+| Command | v1 |
+| --- | --- |
+| `init` | family files + H5 target stub |
+| `add-target` | append target (experimental allowed with warning) |
+| `generate` | types/constants + seam stubs |
+| `validate` | kernel + product shape + experimental warnings |
+| `preview` | H5 first |
+| `doctor` | kernel + product checks |
