@@ -4,12 +4,16 @@ import { pathExists } from "./fs-utils.js";
 import { parseJsonc, stringifyJsonc } from "./jsonc.js";
 import {
   CONFIG_FILE_NAME,
+  DEFAULT_H5_TARGET,
   DEFAULT_PRESET,
-  DEFAULT_TARGETS,
+  DEFAULT_SHARED_CORE,
+  EXPERIMENTAL_TARGET_IDS,
   MANIFEST_FILE_NAME,
   SCHEMA_VERSION,
   type CrossPlatformConfig,
+  type CrossPlatformTarget,
   type ProjectManifestFile,
+  type TargetSupport,
   type WorkspaceConfigFile,
 } from "./types.js";
 
@@ -49,6 +53,71 @@ async function writeJsoncFile(
   await writeFile(filePath, stringifyJsonc(value, header), "utf8");
 }
 
+export function inferSupport(id: string, explicit?: unknown): TargetSupport {
+  if (explicit === "supported" || explicit === "experimental") {
+    return explicit;
+  }
+  return EXPERIMENTAL_TARGET_IDS.has(id) ? "experimental" : "supported";
+}
+
+export function normalizeTarget(value: unknown): CrossPlatformTarget | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== "string" || !value.id) return null;
+  const capabilities = Array.isArray(value.capabilities)
+    ? value.capabilities.filter((c): c is string => typeof c === "string")
+    : [];
+  return {
+    id: value.id,
+    capabilities,
+    support: inferSupport(value.id, value.support),
+  };
+}
+
+export function defaultProductConfig(preset: string): CrossPlatformConfig {
+  return {
+    preset: preset || DEFAULT_PRESET,
+    sharedCore: DEFAULT_SHARED_CORE,
+    targets: [{ ...DEFAULT_H5_TARGET }],
+  };
+}
+
+export function normalizeProductConfig(
+  value: unknown,
+): CrossPlatformConfig | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.preset !== "string" || !value.preset) return null;
+  const sharedCore =
+    typeof value.sharedCore === "string" && value.sharedCore
+      ? value.sharedCore
+      : DEFAULT_SHARED_CORE;
+
+  let targets: CrossPlatformTarget[] = [];
+  if (Array.isArray(value.targets)) {
+    for (const item of value.targets) {
+      // Legacy: string target ids
+      if (typeof item === "string" && item) {
+        targets.push({
+          id: item,
+          capabilities: item === "h5" ? [...DEFAULT_H5_TARGET.capabilities] : [],
+          support: inferSupport(item),
+        });
+        continue;
+      }
+      const normalized = normalizeTarget(item);
+      if (normalized) targets.push(normalized);
+    }
+  }
+  if (targets.length === 0) {
+    targets = [{ ...DEFAULT_H5_TARGET }];
+  }
+
+  return {
+    preset: value.preset,
+    sharedCore,
+    targets,
+  };
+}
+
 export async function writeWorkspaceConfig(
   cwd: string,
   patch: CrossPlatformConfig,
@@ -63,11 +132,9 @@ export async function writeWorkspaceConfig(
     products: {
       ...existing.products,
       crossPlatform: {
-        ...(isRecord(existing.products?.crossPlatform)
-          ? existing.products.crossPlatform
-          : {}),
         preset: patch.preset,
-        targets: patch.targets ?? [...DEFAULT_TARGETS],
+        sharedCore: patch.sharedCore,
+        targets: patch.targets,
       },
     },
   };
@@ -81,18 +148,16 @@ export async function writeWorkspaceConfig(
 
 export async function writeProjectManifest(
   cwd: string,
-  patch: Pick<ProjectManifestFile, "targets" | "tooling" | "entry">,
+  patch: Pick<ProjectManifestFile, "targets" | "tooling">,
 ): Promise<string> {
   const manifestPath = path.join(cwd, MANIFEST_FILE_NAME);
   const existing = (await pathExists(manifestPath))
     ? parseProjectManifest(await loadJsoncFile(manifestPath))
     : { schemaVersion: SCHEMA_VERSION };
   const next: ProjectManifestFile = {
-    ...existing,
     schemaVersion: existing.schemaVersion || SCHEMA_VERSION,
     targets: patch.targets ?? existing.targets,
     tooling: patch.tooling ?? existing.tooling,
-    entry: patch.entry ?? existing.entry,
   };
   await writeJsoncFile(
     manifestPath,
@@ -108,6 +173,7 @@ export type LoadedProject = {
   manifestPath: string;
   workspace: WorkspaceConfigFile;
   project: ProjectManifestFile;
+  product: CrossPlatformConfig | null;
 };
 
 export async function loadProject(cwd: string): Promise<LoadedProject> {
@@ -119,18 +185,13 @@ export async function loadProject(cwd: string): Promise<LoadedProject> {
   if (!(await pathExists(manifestPath))) {
     throw new Error(`missing ${MANIFEST_FILE_NAME}; run \`cross-platform init\``);
   }
+  const workspace = parseWorkspaceConfig(await loadJsoncFile(configPath));
   return {
     cwd,
     configPath,
     manifestPath,
-    workspace: parseWorkspaceConfig(await loadJsoncFile(configPath)),
+    workspace,
     project: parseProjectManifest(await loadJsoncFile(manifestPath)),
-  };
-}
-
-export function defaultProductConfig(preset: string): CrossPlatformConfig {
-  return {
-    preset: preset || DEFAULT_PRESET,
-    targets: [...DEFAULT_TARGETS],
+    product: normalizeProductConfig(workspace.products?.crossPlatform),
   };
 }

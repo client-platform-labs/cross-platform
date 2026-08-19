@@ -24,7 +24,7 @@ Project Manifest holds project-level `targets` / `tooling` only.
 
 | Command | v1 |
 | --- | --- |
-| `init` | family files + H5 target stub |
+| `init` | family files + H5 target + sharedCore stub |
 | `add-target` | append target (experimental allowed with warning) |
 | `generate` | types/constants + seam stubs |
 | `validate` | kernel + product shape + experimental warnings |

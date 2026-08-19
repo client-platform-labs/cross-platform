@@ -1,6 +1,9 @@
 import { createCli } from "@client-platform/kernel";
+import { runAddTarget } from "./add-target.js";
 import { runDoctor } from "./doctor.js";
+import { runGenerate } from "./generate.js";
 import { runInit } from "./init.js";
+import { runPreview } from "./preview.js";
 import { DEFAULT_PRESET } from "./types.js";
 import { runValidate } from "./validate.js";
 
@@ -35,30 +38,59 @@ export async function run(argv: string[]): Promise<void> {
 
   program
     .command("add-target")
-    .description("Register an additional client target (stub)")
-    .argument("[name]", "target name")
-    .action(async (name?: string) => {
-      console.log(
-        `[cross-platform] add-target: stub — target registration for "${name ?? "<name>"}" lands in a later milestone.`,
-      );
+    .description("Register an additional client target")
+    .argument("<name>", "target id")
+    .option("--capabilities <list>", "comma-separated capabilities")
+    .action(async (name: string, opts: { capabilities?: string }) => {
+      try {
+        const caps = opts.capabilities
+          ? opts.capabilities
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : undefined;
+        const result = await runAddTarget(process.cwd(), name, caps);
+        console.log(
+          `added target ${result.target.id} support=${result.target.support} capabilities=[${result.target.capabilities.join(", ")}]`,
+        );
+        if (result.warning) {
+          console.warn(`warn: ${result.warning}`);
+        }
+        console.log(`updated ${result.configPath} (targets=${result.targets.length})`);
+      } catch (err) {
+        fail(err);
+      }
     });
 
   program
     .command("generate")
-    .description("Generate shared-core seams and adapters (stub)")
+    .description("Generate shared-core capability types and per-target seams")
     .action(async () => {
-      console.log(
-        "[cross-platform] generate: stub — shared-core codegen lands in a later milestone.",
-      );
+      try {
+        const written = await runGenerate(process.cwd());
+        console.log(`[cross-platform] generate ok — wrote ${written.length} file(s)`);
+        for (const file of written) {
+          console.log(`  + ${file}`);
+        }
+      } catch (err) {
+        fail(err);
+      }
     });
 
   program
     .command("preview")
-    .description("Run local per-target preview (stub)")
-    .action(async () => {
-      console.log(
-        "[cross-platform] preview: stub — H5 preview lands in a later milestone.",
-      );
+    .description("Run local H5 preview (experimental targets warn only)")
+    .option("--port <n>", "port", "4175")
+    .option("--write-only", "write preview HTML and exit")
+    .action(async (opts: { port: string; writeOnly?: boolean }) => {
+      try {
+        await runPreview(process.cwd(), {
+          port: Number(opts.port) || 4175,
+          writeOnly: Boolean(opts.writeOnly),
+        });
+      } catch (err) {
+        fail(err);
+      }
     });
 
   program
@@ -69,6 +101,9 @@ export async function run(argv: string[]): Promise<void> {
         const result = await runValidate(process.cwd());
         for (const check of result.checks) {
           console.log(`ok: ${check}`);
+        }
+        for (const warning of result.warnings) {
+          console.warn(`warn: ${warning}`);
         }
         for (const error of result.errors) {
           console.error(`error: ${error}`);
