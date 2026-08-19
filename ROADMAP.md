@@ -1,25 +1,25 @@
 # Roadmap
 
-Command-shell track for Client Platform Labs v1.
-
 ## Now
 
-- CLI surface (locked, mostly stubbed): `init`, `add-target`, `generate`, `preview`, `validate`, `doctor`.
-- Default preset (locked): `h5-react-vite`.
-- Native mini-program targets remain experimental per the family compatibility matrix.
-- `init` / `doctor` / `validate` should write and check family config; other commands may stub.
+- CLI: `init`, `add-target`, `generate`, `preview`, `validate`, `doctor`
+- Default preset: `h5-react-vite`
+- Config (locked): `products.crossPlatform` with `sharedCore` + `targets[{ id, capabilities[], support }]`
+- Support policy (locked): `h5` supported; `mini-program` experimental
+- `generate` v1 (locked): capability types/constants + per-target seam stubs
 
 ## Next
 
-- Shared-core vs adapter boundary and capability manifests.
-- Second target only after H5 path is real.
+- Implement config shape on `init`, real `generate`, warn-on-experimental in `validate`.
+- H5 `preview` path before any mini-program runtime.
 
 ## Later
 
-- Broader target matrix and codegen for seams.
+- Broader capability matrix and more targets.
+- Codegen for capability fallbacks.
 
 ## Non-goals for v1
 
-- Claiming all targets are the same runtime.
+- Treating mini-program as a supported promise.
 - Replacing RN delivery.
-- Treating native mini-programs as a supported v1 promise.
+- Claiming all targets share one runtime.
